@@ -1,4 +1,3 @@
-//> using publish.name toolkit
 //> using publish.computeVersion git:tag
 //> using publish.url https://github.com/alterationx10/x10-toolkit
 //> using publish.vcs github:alterationx10/x10-toolkit

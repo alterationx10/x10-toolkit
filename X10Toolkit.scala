@@ -1,4 +1,5 @@
 //> using scala 3
+//> using publish.name toolkit
 //> using publish.organization  dev.alteration.x10
 
 //> using dep dev.zio::zio::2.1.1
