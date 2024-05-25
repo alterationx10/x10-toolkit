@@ -1,4 +1,4 @@
-name: Publish X10 toolkit
+name: Publish X10Native toolkit
 
 on:
   release:
