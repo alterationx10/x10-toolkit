@@ -1,0 +1,58 @@
+name: Publish X10 toolkit
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+  CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+  GPG_PRIVATE_KEY: ${{ secrets.PGP_SECRET }}
+  PGP_PASSWORD: ${{ secrets.PGP_PASSPHRASE }}
+
+jobs:
+  publish:
+    name: Release toolkit and publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: coursier/cache-action@v6.3
+
+      - name: Setup Scala CLI
+        uses: VirtusLab/scala-cli-setup@main
+
+      - name: Import GPG key
+        id: import_gpg
+        run: |
+          echo "${{ secrets.PGP_SECRET }}" | base64 --decode > private.key
+          gpg --import --batch --yes --pinentry-mode loopback --passphrase "${{ secrets.PGP_PASSPHRASE }}" private.key
+          echo "fingerprint=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ { print $10 }')" >> "$GITHUB_OUTPUT"
+          rm private.key
+        env:
+          gpg_private_key: ${{ secrets.PGP_SECRET }}
+          passphrase: ${{ secrets.PGP_PASSPHRASE }}
+
+      - name: Local publish Toolkit for JVM
+        run: scala-cli --power publish local X10Toolkit.scala publish-conf.scala --gpg-key $PGP_KEY_ID --gpg-option --pinentry-mode --gpg-option loopback --gpg-option --passphrase --gpg-option $PGP_PASSWORD
+        continue-on-error: false
+        env:
+          PGP_KEY_ID: ${{ steps.import_gpg.outputs.fingerprint }}
+
+      - name: Publish Toolkit for JVM
+        run: scala-cli --power publish X10Toolkit.scala publish-conf.scala --password env:CENTRAL_PASSWORD --user env:CENTRAL_USERNAME --gpg-key $PGP_KEY_ID --gpg-option --pinentry-mode --gpg-option loopback --gpg-option --passphrase --gpg-option $PGP_PASSWORD
+        continue-on-error: true
+        env:
+          PGP_KEY_ID: ${{ steps.import_gpg.outputs.fingerprint }}
+
+      - name: Publish Toolkit Test for JVM
+        run: scala-cli --power publish --dependency "dev.alteration.x10::toolkit::$TOOLKIT_VERSION" X10ToolkitTest.scala publish-conf.scala --password env:CENTRAL_PASSWORD --user env:CENTRAL_USERNAME --gpg-key $PGP_KEY_ID --gpg-option --pinentry-mode --gpg-option loopback --gpg-option --passphrase --gpg-option $PGP_PASSWORD
+        continue-on-error: true
+        env:
+          TOOLKIT_VERSION: ${{ github.ref_name }}
+          PGP_KEY_ID: ${{ steps.import_gpg.outputs.fingerprint }}
+    
