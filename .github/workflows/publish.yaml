@@ -37,22 +37,42 @@ jobs:
           gpg_private_key: ${{ secrets.PGP_SECRET }}
           passphrase: ${{ secrets.PGP_PASSPHRASE }}
 
-      - name: Local publish Toolkit for JVM
-        run: scala-cli --power publish local X10Toolkit.scala publish-conf.scala --gpg-key $PGP_KEY_ID --gpg-option --pinentry-mode --gpg-option loopback --gpg-option --passphrase --gpg-option $PGP_PASSWORD
+      - name: Publish Toolkit for JVM
+        run: |
+          scala-cli --power publish local X10Toolkit.scala publish-conf.scala --gpg-key $PGP_KEY_ID --gpg-option --pinentry-mode --gpg-option loopback --gpg-option --passphrase --gpg-option $PGP_PASSWORD
+          tar -czvf central-bundle.tgz \
+            -C ~/.ivy2/local/dev.alteration.x10/toolkit_3/$TOOLKIT_VERSION/docs . \
+            -C ~/.ivy2/local/dev.alteration.x10/toolkit_3/$TOOLKIT_VERSION/poms . \
+            -C ~/.ivy2/local/dev.alteration.x10/toolkit_3/$TOOLKIT_VERSION/jars . \
+            -C ~/.ivy2/local/dev.alteration.x10/toolkit_3/$TOOLKIT_VERSION/srcs .
+          curl --request POST \
+            --verbose \
+            --header 'Authorization: Bearer ZXhhbXBsZV91c2VybmFtZTpleGFtcGxlX3Bhca3N3b3JkCg==' \
+            --form bundle=@central-bundle.tgz \
+            https://central.sonatype.com/api/v1/publisher/upload
+            rm central-bundle.tgz
         continue-on-error: false
         env:
           PGP_KEY_ID: ${{ steps.import_gpg.outputs.fingerprint }}
-
-      - name: Publish Toolkit for JVM
-        run: scala-cli --power publish X10Toolkit.scala publish-conf.scala --password env:CENTRAL_PASSWORD --user env:CENTRAL_USERNAME --gpg-key $PGP_KEY_ID --gpg-option --pinentry-mode --gpg-option loopback --gpg-option --passphrase --gpg-option $PGP_PASSWORD
-        continue-on-error: true
-        env:
-          PGP_KEY_ID: ${{ steps.import_gpg.outputs.fingerprint }}
+          TOOLKIT_VERSION: ${{ github.ref_name }}
 
       - name: Publish Toolkit Test for JVM
-        run: scala-cli --power publish --dependency "dev.alteration.x10::toolkit::$TOOLKIT_VERSION" X10ToolkitTest.scala publish-conf.scala --password env:CENTRAL_PASSWORD --user env:CENTRAL_USERNAME --gpg-key $PGP_KEY_ID --gpg-option --pinentry-mode --gpg-option loopback --gpg-option --passphrase --gpg-option $PGP_PASSWORD
+        run: |
+          scala-cli --power publish local --dependency "dev.alteration.x10::toolkit::$TOOLKIT_VERSION" X10ToolkitTest.scala publish-conf.scala --gpg-key $PGP_KEY_ID --gpg-option --pinentry-mode --gpg-option loopback --gpg-option --passphrase --gpg-option $PGP_PASSWORD
+          tar -czvf central-bundle.tgz \
+            -C ~/.ivy2/local/dev.alteration.x10/toolkit_3/$TOOLKIT_VERSION/docs . \
+            -C ~/.ivy2/local/dev.alteration.x10/toolkit_3/$TOOLKIT_VERSION/poms . \
+            -C ~/.ivy2/local/dev.alteration.x10/toolkit_3/$TOOLKIT_VERSION/jars . \
+            -C ~/.ivy2/local/dev.alteration.x10/toolkit_3/$TOOLKIT_VERSION/srcs .
+          curl --request POST \
+            --verbose \
+            --header 'Authorization: Bearer $CENTRAL_TOKEN' \
+            --form bundle=@central-bundle.tgz \
+            https://central.sonatype.com/api/v1/publisher/upload
+          rm central-bundle.tgz
         continue-on-error: true
         env:
           TOOLKIT_VERSION: ${{ github.ref_name }}
           PGP_KEY_ID: ${{ steps.import_gpg.outputs.fingerprint }}
+          CENTRAL_TOKEN: ${{ secrets.CENTRAL_TOKEN }}
     
