@@ -24,7 +24,7 @@ x10-publish:
             --request POST \
             --header 'Authorization: Bearer ${CENTRAL_TOKEN}' \
             --form bundle=@x10-bundle/x10-toolkit-${TOOLKIT_VERSION}.zip \
-            https://central.sonatype.com/api/v1/publisher/upload?publishingType=USER_MANAGED
+            https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC
 local:
 	scala-cli publish local X10Toolkit.scala publish-conf.scala
 	scala-cli publish local X10ToolkitTest.scala publish-conf.scala
