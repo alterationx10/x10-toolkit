@@ -39,7 +39,6 @@ jobs:
 
       - name: Publish Toolkit for JVM
         run: |
-          sudo apt-get update
           sudo apt-get install rename
           make -s x10-bundle
           make -s x10-publish
