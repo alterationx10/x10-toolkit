@@ -39,9 +39,11 @@ jobs:
 
       - name: Publish Toolkit for JVM
         run: |
-          make x10-bundle
-          make x10-publish
-          make clean
+          sudo apt-get update
+          sudo apt-get install rename
+          make -s x10-bundle
+          make -s x10-publish
+          make -s clean
         continue-on-error: false
         env:
           PGP_KEY_ID: ${{ steps.import_gpg.outputs.fingerprint }}
